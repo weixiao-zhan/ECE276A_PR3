@@ -63,9 +63,12 @@ def visualize_trajectory(T_mu,T_sigma=None,features=None,path_name="Unknown",
                 where N is the number of poses, and each
                 4*4 matrix is in SE(3)
     '''
-    fig,ax = plt.subplots(figsize=(5,5))
+    fig,ax = plt.subplots(figsize=(8,8))
     x = T_mu[:, 0, 3]
     y = T_mu[:, 1, 3]
+    x_min, x_max = np.min(x), np.max(x)
+    y_min, y_max = np.min(y), np.max(y)
+    r = 200
     n_pose = T_mu.shape[0]
     select_ori_index = list(range(0,n_pose,max(int(n_pose/50), 1)))
 
@@ -82,10 +85,11 @@ def visualize_trajectory(T_mu,T_sigma=None,features=None,path_name="Unknown",
 
     # plot features
     if (not features is None) and show_features:
-       ax.scatter(features[:,0], features[:,1], marker='^', s=1, label="features", c="C2")
+        range_mask = (x_min-r<features[:,0]) & (features[:,0]<x_max+r) & (x_min-r<features[:,0]) & (features[:,0]<x_max+r)
+        ax.scatter(features[range_mask,0], features[range_mask,1], marker='^', s=0.5, label="features", c="C2")
 
     # plot trajectory
-    ax.plot(x,y,'r-',label=path_name, c="C0")
+    ax.plot(x,y,label=path_name, c="C0")
     ax.scatter(x[ 0],y[0],marker='s',label="start",c="C1")
     ax.scatter(x[-1],y[-1],marker='o',label="end",c="C1")
 
@@ -107,10 +111,8 @@ def visualize_trajectory(T_mu,T_sigma=None,features=None,path_name="Unknown",
     ax.axis('equal')
     ax.grid(False)
     ax.legend()
-    plt.show(block=True)
-
+    
     return fig, ax
-
 
 def projection(ph):
     '''
