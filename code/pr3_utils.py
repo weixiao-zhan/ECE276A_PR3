@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import torch
 from transforms3d.euler import mat2euler
 
 def load_data(file_name):
@@ -40,18 +39,6 @@ def load_data(file_name):
         linear_velocity.transpose(1,0),
         angular_velocity.transpose(1,0),
         K,b,imu_T_cam)
-
-def load_data_torch(file_name, device=torch.device("cpu")):
-    t,features,linear_velocity,angular_velocity,K,b,imu_T_cam = load_data(file_name)
-    return (
-        torch.from_numpy(t),
-        torch.from_numpy(features),
-        torch.from_numpy(linear_velocity),
-        torch.from_numpy(angular_velocity),
-        torch.from_numpy(K),
-        torch.from_numpy(b),
-        torch.from_numpy(imu_T_cam)
-    )
 
 from matplotlib.patches import Ellipse
 def visualize_trajectory(T_mu,T_sigma=None,features=None,path_name="Unknown",
