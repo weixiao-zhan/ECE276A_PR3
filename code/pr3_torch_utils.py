@@ -1,10 +1,12 @@
 import torch
 from pr3_utils import load_data
 
-DEVICE = torch.device(
-    "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-)
-DTYPE = torch.float32
+# DEVICE = torch.device(
+#     "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+# )
+# DTYPE = torch.float32
+DEVICE = torch.device("cpu")
+DTYPE = torch.float64
 
 def load_data_torch(file_name):
     t,features,linear_velocity,angular_velocity,K,b,imu_T_cam = load_data(file_name)
