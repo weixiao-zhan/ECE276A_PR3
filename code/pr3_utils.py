@@ -41,8 +41,10 @@ def load_data(file_name):
         K,b,imu_T_cam)
 
 from matplotlib.patches import Ellipse
-def visualize_trajectory(T_mu,T_sigma=None,features=None,path_name="Unknown",
-                         show_ori=True,show_var=True, show_features=True):
+def visualize_trajectory(path_name="Unknown",
+                         T_mean=None, T_covar=None,
+                         show_ori=True, show_var=True,
+                         ):
     '''
     function to visualize the trajectory in 2D
     Input:
@@ -51,46 +53,36 @@ def visualize_trajectory(T_mu,T_sigma=None,features=None,path_name="Unknown",
                 4*4 matrix is in SE(3)
     '''
     fig,ax = plt.subplots(figsize=(8,8))
-    x = T_mu[:, 0, 3]
-    y = T_mu[:, 1, 3]
-    x_min, x_max = np.min(x), np.max(x)
-    y_min, y_max = np.min(y), np.max(y)
-    r = 200
-    n_pose = T_mu.shape[0]
+    x = T_mean[:, 0, 3]
+    y = T_mean[:, 1, 3]
+    n_pose = T_mean.shape[0]
     select_ori_index = list(range(0,n_pose,max(int(n_pose/50), 1)))
 
     # plot covar
-    if (not T_sigma is None) and show_var:
+    if (not T_covar is None) and show_var:
         for i in select_ori_index:
-            covar_xy = T_sigma[i, :2,:2]
+            covar_xy = T_covar[i, :2,:2]
             eigenvalues, eigenvectors = np.linalg.eig(covar_xy)
             angle = np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]) * (180 / np.pi)
             ellipse = Ellipse(xy=(x[i], y[i]), 
                               width=2*np.sqrt(eigenvalues[0]), height=2*np.sqrt(eigenvalues[1]), angle=angle, 
                               edgecolor='orange', fc='None', lw=1, linestyle='--')
             ax.add_patch(ellipse)
-
-    # plot features
-    if (not features is None) and show_features:
-        range_mask = (x_min-r<features[:,0]) & (features[:,0]<x_max+r) & (x_min-r<features[:,0]) & (features[:,0]<x_max+r)
-        ax.scatter(features[range_mask,0], features[range_mask,1], marker='^', s=0.5, label="features", c="C2")
-
-    # plot trajectory
-    ax.plot(x,y,label=path_name, c="C0")
-    ax.scatter(x[ 0],y[0],marker='s',label="start",c="C1")
-    ax.scatter(x[-1],y[-1],marker='o',label="end",c="C1")
-
     # plot orientation
     if show_ori:
         yaw_list = []
         for i in select_ori_index:
-            _,_,yaw = mat2euler(T_mu[i,:3,:3])
+            _,_,yaw = mat2euler(T_mean[i,:3,:3])
             yaw_list.append(yaw)
     
         dx = np.cos(yaw_list)
         dy = np.sin(yaw_list)
         ax.quiver(x[select_ori_index],y[select_ori_index],dx,dy,\
             color="C3",units="xy",width=5)
+    # plot trajectory
+    ax.plot(x,y,label=path_name, c="C0")
+    ax.scatter(x[ 0],y[0],marker='s',label="start",c="C1")
+    ax.scatter(x[-1],y[-1],marker='o',label="end",c="C1")
     
     # show
     ax.set_xlabel('x')

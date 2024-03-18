@@ -1,12 +1,13 @@
 import torch
 from pr3_utils import load_data
+import matplotlib.pyplot as plt
 
-# DEVICE = torch.device(
-#     "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
-# )
-# DTYPE = torch.float32
-DEVICE = torch.device("cpu")
+DEVICE = torch.device(
+    "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+)
 DTYPE = torch.float64
+# DEVICE = torch.device("cpu")
+# DTYPE = torch.float64
 
 def load_data_torch(file_name):
     t,features,linear_velocity,angular_velocity,K,b,imu_T_cam = load_data(file_name)
@@ -32,7 +33,7 @@ def projectionJacobian(ph):
     ph = n x 4 = homogeneous point coordinates
     J = n x 4 x 4 = Jacobian of ph/ph[...,2]
     '''  
-    J = torch.zeros(ph.shape+(4,),dtype=DTYPE,device=DEVICE)
+    J = torch.zeros(ph.shape+(4,),dtype=ph.dtype,device=ph.device)
     iph2 = 1.0/ph[...,2]
     ph2ph2 = ph[...,2]**2
     J[...,0,0], J[...,1,1],J[...,3,3] = iph2,iph2,iph2
@@ -62,7 +63,7 @@ def axangle2skew(a):
     '''
     converts an n x 3 axis-angle to an n x 3 x 3 skew symmetric matrix 
     '''
-    S = torch.empty(a.shape[:-1]+(3,3), dtype=DTYPE, device=DEVICE)
+    S = torch.empty(a.shape[:-1]+(3,3), dtype=a.dtype, device=a.device)
     S[...,0,0].fill_(0)
     S[...,0,1] =-a[...,2]
     S[...,0,2] = a[...,1]
@@ -81,7 +82,7 @@ def axangle2twist(x):
     @Output:
       T = n x 4 x 4 = n elements of se(3)
     '''
-    T = torch.zeros(x.shape[:-1]+(4,4), dtype=DTYPE, device=DEVICE)
+    T = torch.zeros(x.shape[:-1]+(4,4), dtype=x.dtype, device=x.device)
     T[...,0,1] =-x[...,5]
     T[...,0,2] = x[...,4]
     T[...,0,3] = x[...,0]
@@ -106,7 +107,7 @@ def axangle2adtwist(x):
     @Output:
       A = n x 6 x 6 = n elements of ad(se(3))
     '''
-    A = torch.zeros(x.shape+(6,), dtype=DTYPE, device=DEVICE)
+    A = torch.zeros(x.shape+(6,), dtype=x.dtype, device=x.device)
     A[...,0,1] =-x[...,5]
     A[...,0,2] = x[...,4]
     A[...,0,4] =-x[...,2]
@@ -156,9 +157,18 @@ def pose2adpose(T):
     '''
     converts an n x 4 x 4 pose (SE3) matrix to an n x 6 x 6 adjoint pose (ad(SE3)) matrix 
     '''
-    calT = torch.empty(T.shape[:-2]+(6,6), dtype=DTYPE, device=DEVICE)
+    calT = torch.empty(T.shape[:-2]+(6,6), dtype=T.dtype, device=T.device)
     calT[...,:3,:3] = T[...,:3,:3]
     calT[...,:3,3:] = axangle2skew(T[...,:3,3]) @ T[...,:3,:3]
-    calT[...,3:,:3] = torch.zeros(T.shape[:-2]+(3,3), dtype=DTYPE, device=DEVICE)
+    calT[...,3:,:3] = torch.zeros(T.shape[:-2]+(3,3), dtype=T.dtype, device=T.device)
     calT[...,3:,3:] = T[...,:3,:3]
     return calT
+
+def odot(s):
+    '''
+    s: shape (..., 4)
+    '''
+    re = torch.zeros(s.shape[:-1]+(4,6), dtype=s.dtype, device=s.device)
+    re[..., :3,:3]=torch.eye(3, dtype=s.dtype, device=s.device).expand_as(re[..., :3, :3])
+    re[..., :3,3:] = -axangle2skew(s[...,:3])
+    return re
